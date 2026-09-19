@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "ioiohori.quarter-launcher",
+  "name": "Quarter Launcher",
+  "version": "0.1.0",
+  "author": "Iori Horigome (ioiohori)",
+  "license": "MIT",
+  "description": "Tick apps in a checklist and launch them floating on an empty workspace, docked to a quarter of the screen.",
+  "kinds": [
+    "overlay",
+    "bar-widget"
+  ],
+  "keepLoaded": true,
+  "entryPoints": {
+    "overlay": "QuarterLauncher.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Quarter Launcher",
+    "description": "Opens the Quarter Launcher checklist",
+    "category": "Launchers",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}
