@@ -27,30 +27,48 @@ assert.strictEqual(P.classPattern([]), "")
 const rows = [
   { id: "org.gnome.Nautilus", name: "Files", candidates: ["org.gnome.Nautilus", "nautilus"], float: true, quarter: true },
   { id: "foot", name: "Foot", candidates: ["foot"], float: true, quarter: false },
+  { id: "code", name: "Code", candidates: ["Code"], float: false, quarter: false, emptyws: true },
+  { id: "all", name: "All", candidates: ["all"], float: true, quarter: true, emptyws: true },
   { id: "skip", name: "Skip", candidates: ["skip"], float: false, quarter: false }
 ]
 const lua = P.luaRules(rows, P.geometry(mon), "eDP-1")
-assert.ok(lua.indexOf('hl.window_rule({ match = { class = "^(org\\\\.gnome\\\\.Nautilus|nautilus)$", float = false }, float = true, size = { 384, 934 }, move = { 1152, 26 } })') > 0, lua)
-assert.ok(lua.indexOf('hl.window_rule({ match = { class = "^(foot)$", float = false }, float = true })') > 0, lua)
+const has = (s) => assert.ok(lua.indexOf(s) >= 0, "missing: " + s + "\n" + lua)
+has('hl.window_rule({ match = { class = "^(org\\\\.gnome\\\\.Nautilus|nautilus)$", float = false }, float = true, size = { 384, 934 }, move = { 1152, 26 } })')
+has('hl.window_rule({ match = { class = "^(foot)$", float = false }, float = true })')
+has('hl.window_rule({ match = { class = "^(Code)$", float = false }, workspace = "emptym" })')
+has('hl.window_rule({ match = { class = "^(all)$", float = false }, workspace = "emptym", float = true, size = { 384, 934 }, move = { 1152, 26 } })')
+has("-- Code (code): empty workspace")
+has("-- All (all): empty workspace, floating, 1/4 right")
 assert.ok(lua.indexOf("skip") < 0)
 assert.ok(P.luaRules([], P.geometry(mon), "").indexOf("No apps configured") > 0)
 
 // State + toggles.
-let apps = P.normalizeState({ apps: { a: { float: true }, b: { quarter: true }, c: { float: false } } }).apps
-assert.deepStrictEqual(apps, { a: { float: true, quarter: false }, b: { float: true, quarter: true } })
+let apps = P.normalizeState({ apps: { a: { float: true }, b: { quarter: true }, c: { float: false }, d: { emptyws: true } } }).apps
+assert.deepStrictEqual(apps, {
+  a: { float: true, quarter: false, emptyws: false },
+  b: { float: true, quarter: true, emptyws: false },
+  d: { float: false, quarter: false, emptyws: true }
+})
 apps = P.toggled(apps, "a", "quarter")
-assert.deepStrictEqual(apps.a, { float: true, quarter: true })
+assert.deepStrictEqual(apps.a, { float: true, quarter: true, emptyws: false })
+apps = P.toggled(apps, "a", "emptyws")
+assert.deepStrictEqual(apps.a, { float: true, quarter: true, emptyws: true })
 apps = P.toggled(apps, "a", "float")
-assert.strictEqual(apps.a, undefined)          // unticking float clears both
+assert.deepStrictEqual(apps.a, { float: false, quarter: false, emptyws: true })  // unticking float clears quarter, keeps empty ws
+apps = P.toggled(apps, "a", "emptyws")
+assert.strictEqual(apps.a, undefined)          // nothing left → dropped
 apps = P.toggled(apps, "z", "quarter")
-assert.deepStrictEqual(apps.z, { float: true, quarter: true })  // quarter implies float
+assert.deepStrictEqual(apps.z, { float: true, quarter: true, emptyws: false })  // quarter implies float
 assert.strictEqual(P.normalizeState(null).version, 1)
-assert.deepStrictEqual(JSON.parse(P.serializeState({ apps: apps })).apps.z, { float: true, quarter: true })
+assert.deepStrictEqual(JSON.parse(P.serializeState({ apps: apps })).apps.z, { float: true, quarter: true, emptyws: false })
 
-// Search + ordering: configured first with no query.
+// Search + ordering: alphabetical by name, configured or not.
 const list = [nautilus, godot, chromium, { id: "hidden", name: "Hidden", noDisplay: true }]
-let out = P.sortedEntries(list, "", {}, { chromium: { float: true } })
-assert.deepStrictEqual(out.map(r => r.id), ["chromium", "org.gnome.Nautilus", "org.godotengine.Godot"])
+let out = P.sortedEntries(list, "", {}, { chromium: { emptyws: true } })
+assert.deepStrictEqual(out.map(r => r.id), ["chromium", "org.gnome.Nautilus", "org.godotengine.Godot"]) // Chromium, Files, Godot
+assert.strictEqual(out[0].emptyws, true)
+out = P.sortedEntries(list, "", {}, { "org.godotengine.Godot": { float: true } })
+assert.deepStrictEqual(out.map(r => r.id), ["chromium", "org.gnome.Nautilus", "org.godotengine.Godot"]) // still alphabetical
 out = P.sortedEntries(list, "god", { chromium: true }, {})
 assert.deepStrictEqual(out.map(r => r.id), ["org.godotengine.Godot"])
 

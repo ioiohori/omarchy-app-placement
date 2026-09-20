@@ -7,9 +7,9 @@ import qs.Commons
 import qs.Ui
 import "Placement.js" as Placement
 
-// App Placement overlay: every desktop app in a table with two checkbox
-// columns, Floating and 1/4 Right. Ticks are saved immediately and turned
-// into Hyprland window rules, so the app opens that way from any launcher.
+// App Placement overlay: every desktop app in a table with three checkbox
+// columns, Floating, 1/4 Right and Empty WS. Ticks are saved immediately and
+// turned into Hyprland window rules, so the app opens that way from any launcher.
 Item {
   id: root
 
@@ -27,10 +27,12 @@ Item {
   property bool opened: false
   property string filterText: ""
   property int selectedIndex: 0
-  property int selectedColumn: 0   // 0 = Floating, 1 = 1/4 Right
+  property int selectedColumn: 0   // 0 = Floating, 1 = 1/4 Right, 2 = Empty WS
+  readonly property var columnKeys: ["float", "quarter", "emptyws"]
+  readonly property var columnLabels: ["Floating", "1/4 Right", "Empty WS"]
   property bool cursorActive: true
 
-  property var apps: ({})          // id -> { float, quarter }
+  property var apps: ({})          // id -> { float, quarter, emptyws }
   property bool stateLoaded: false
   property var hiddenIds: ({})
   property var monitorCache: []
@@ -57,8 +59,8 @@ Item {
   property int rowHeight: Math.max(Style.space(40), Style.font.subtitle + Style.font.caption + Style.spacing.md)
   property int iconSize: Style.space(24)
   property int checkSize: Style.space(18)
-  property int toggleColumnWidth: Style.space(92)
-  property int cardWidth: Math.min(Style.space(640), panel.width - Style.gapsOut * 2)
+  property int toggleColumnWidth: Style.space(84)
+  property int cardWidth: Math.min(Style.space(700), panel.width - Style.gapsOut * 2)
   property int cardHeight: Math.min(Style.space(660), panel.height - Style.gapsOut * 2)
 
   // ---- lifecycle -----------------------------------------------------------
@@ -90,7 +92,7 @@ Item {
 
   function ping() { return "ok" }
 
-  // `omarchy-shell shell call <id> set '{"id":"org.gnome.Nautilus","float":true,"quarter":true}'`
+  // `omarchy-shell shell call <id> set '{"id":"org.gnome.Nautilus","float":true,"quarter":true,"emptyws":false}'`
   function set(json) {
     var payload = null
     try { payload = JSON.parse(json || "{}") } catch (e) { return "bad json" }
@@ -98,9 +100,8 @@ Item {
     if (!id) return "missing id"
     var next = ({})
     for (var key in root.apps) next[key] = root.apps[key]
-    var conf = { float: payload.float === true, quarter: payload.quarter === true }
-    if (conf.quarter) conf.float = true
-    if (conf.float || conf.quarter) next[id] = conf
+    var conf = Placement.normalizeApp(payload)
+    if (Placement.isConfigured(conf)) next[id] = conf
     else delete next[id]
     root.setApps(next)
     root.saveNow()
@@ -135,9 +136,10 @@ Item {
     root.updateConfiguredCount()
     for (var i = 0; i < displayModel.count; i++) {
       var row = displayModel.get(i)
-      var conf = next[row.appId] || { float: false, quarter: false }
+      var conf = next[row.appId] || { float: false, quarter: false, emptyws: false }
       if (row.isFloat !== (conf.float === true)) displayModel.setProperty(i, "isFloat", conf.float === true)
       if (row.isQuarter !== (conf.quarter === true)) displayModel.setProperty(i, "isQuarter", conf.quarter === true)
+      if (row.isEmptyWs !== (conf.emptyws === true)) displayModel.setProperty(i, "isEmptyWs", conf.emptyws === true)
     }
   }
 
@@ -225,7 +227,8 @@ Item {
         classText: rows[i].candidates.join(" | "),
         icon: String(entry.icon || ""),
         isFloat: rows[i].float,
-        isQuarter: rows[i].quarter
+        isQuarter: rows[i].quarter,
+        isEmptyWs: rows[i].emptyws
       })
     }
 
@@ -267,7 +270,7 @@ Item {
     root.selectedIndex = index
     root.selectedColumn = column
     root.cursorActive = true
-    root.setApps(Placement.toggled(root.apps, row.appId, column === 1 ? "quarter" : "float"))
+    root.setApps(Placement.toggled(root.apps, row.appId, root.columnKeys[column] || "float"))
     saveDebounce.restart()
   }
 
@@ -442,10 +445,13 @@ Item {
             root.move(-1)
           } else if (event.key === Qt.Key_Down) {
             root.move(1)
-          } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab) {
-            root.selectedColumn = 0
-          } else if (event.key === Qt.Key_Right || event.key === Qt.Key_Tab) {
-            root.selectedColumn = 1
+          } else if (event.key === Qt.Key_Left) {
+            root.selectedColumn = Math.max(0, root.selectedColumn - 1)
+          } else if (event.key === Qt.Key_Right) {
+            root.selectedColumn = Math.min(root.columnKeys.length - 1, root.selectedColumn + 1)
+          } else if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+            var n = root.columnKeys.length
+            root.selectedColumn = (root.selectedColumn + (event.key === Qt.Key_Backtab ? n - 1 : 1)) % n
           } else if (event.key === Qt.Key_PageUp) {
             root.move(-root.pageSize())
           } else if (event.key === Qt.Key_PageDown) {
@@ -529,7 +535,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             Repeater {
-              model: ["Floating", "1/4 Right"]
+              model: root.columnLabels
               delegate: Item {
                 required property int index
                 required property string modelData
@@ -571,6 +577,7 @@ Item {
               required property string icon
               required property bool isFloat
               required property bool isQuarter
+              required property bool isEmptyWs
 
               readonly property bool hasCursor: root.cursorActive && index === root.selectedIndex
 
@@ -651,6 +658,12 @@ Item {
                   checked: row.isQuarter
                   hasCursor: row.hasCursor && root.selectedColumn === 1
                   onClicked: root.toggleCell(row.index, 1)
+                }
+
+                CheckCell {
+                  checked: row.isEmptyWs
+                  hasCursor: row.hasCursor && root.selectedColumn === 2
+                  onClicked: root.toggleCell(row.index, 2)
                 }
               }
             }
@@ -738,7 +751,7 @@ Item {
           id: hint
           textFormat: Text.PlainText
           width: parent.width
-          text: "Type to search · ↑↓ app · ←→ column · Space toggles · 1/4 Right implies Floating · Ctrl+D clear · Esc close. Changes apply immediately."
+          text: "Type to search · ↑↓ app · ←→ column · Space toggles · 1/4 Right implies Floating · Empty WS is independent · Ctrl+D clear · Esc close. Changes apply immediately."
           color: root.foreground
           opacity: 0.5
           font.family: root.fontFamily

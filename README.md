@@ -1,9 +1,10 @@
 # App Placement for Omarchy
 
 Per-app window placement settings for [Omarchy](https://omarchy.org/). Open
-the panel, find an app, tick **Floating** and/or **1/4 Right**, done: from then
-on that app opens floating, docked to the right quarter of the screen, no
-matter how you launch it (menu, keybind, terminal, another app).
+the panel, find an app, tick **Floating**, **1/4 Right** and/or **Empty WS**,
+done: from then on that app opens floating, docked to the right quarter of
+the screen, or on a fresh empty workspace, no matter how you launch it
+(menu, keybind, terminal, another app).
 
 ![App Placement overlay](preview.png)
 
@@ -32,7 +33,7 @@ menu). Move or remove it with `omarchy bar move` / `omarchy bar` like any widget
 |-----|--------|
 | type | filter the list (name, description, keywords, id) |
 | `↑` `↓` | move between apps |
-| `←` `→` | move between the Floating and 1/4 Right columns |
+| `←` `→` / `Tab` | move between the Floating, 1/4 Right and Empty WS columns |
 | `Space` / `Enter` / click | toggle the highlighted checkbox |
 | `Ctrl+D` | clear every setting |
 | `Esc` | clear the filter, then close |
@@ -43,6 +44,9 @@ Rules:
 - **1/4 Right** opens it floating in a full-height column a quarter of the
   screen wide, against the right edge, below the bar. Ticking it also ticks
   Floating; unticking Floating clears both.
+- **Empty WS** opens it on the first empty workspace of the focused monitor
+  (Hyprland's `emptym`) and switches to it. It is independent of the other
+  two, so a tiled app can get a workspace of its own.
 - Changes apply immediately. The status line shows `Rules applied` or the
   `hyprctl configerrors` output if Hyprland rejected the file.
 - Dialogs and other child windows of the app are left alone.
@@ -51,7 +55,7 @@ Rules:
 
 ```bash
 # Set one app without the UI.
-omarchy-shell shell call ioiohori.app-placement set '{"id":"org.gnome.Nautilus","float":true,"quarter":true}'
+omarchy-shell shell call ioiohori.app-placement set '{"id":"org.gnome.Nautilus","float":true,"quarter":true,"emptyws":false}'
 # Clear it.
 omarchy-shell shell call ioiohori.app-placement set '{"id":"org.gnome.Nautilus"}'
 # Recompute the geometry for the current monitor and rewrite the rules
@@ -75,7 +79,7 @@ omarchy-shell shell call ioiohori.app-placement regenerate ''
 
   ```lua
   hl.window_rule({ match = { class = "^(org\\.gnome\\.Nautilus|nautilus)$", float = false },
-    float = true, size = { 384, 934 }, move = { 1152, 26 } })
+    workspace = "emptym", float = true, size = { 384, 934 }, move = { 1152, 26 } })
   ```
 
   `float = false` in the match restricts it to the main window: Hyprland
@@ -109,8 +113,8 @@ Requires Omarchy 4.x (Hyprland with the Lua config, Quickshell 0.3).
 ## 日本語
 
 アプリごとのウィンドウ配置を設定するパネルです(ランチャーではありません)。
-一覧からアプリを探して **Floating** / **1/4 Right** にチェックを入れると、
-そのアプリはどこから起動しても floating で、画面右 1/4 の縦長カラムに開きます。
+一覧からアプリを探して **Floating** / **1/4 Right** / **Empty WS** にチェックを入れると、
+そのアプリはどこから起動しても floating、画面右 1/4 の縦長カラム、空のワークスペース(Empty WS、他 2 つとは独立)で開きます。
 
 - インストール: `omarchy plugin add https://github.com/ioiohori/omarchy-app-placement.git --enable`
 - キー割り当て: `o.bind("SUPER + SHIFT + Q", "App placement settings", "omarchy-shell shell toggle ioiohori.app-placement")`
