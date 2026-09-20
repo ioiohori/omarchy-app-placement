@@ -138,9 +138,13 @@ omarchy-shell shell call ioiohori.app-placement regenerate ''
 
 ## Development
 
+Install it with `omarchy plugin add` as above; the checkout under
+`~/.config/omarchy/plugins/ioiohori.app-placement` is a plain git repository,
+so edit it in place.
+
 ```bash
-git clone https://github.com/ioiohori/omarchy-app-placement.git ~/.config/omarchy/plugins/ioiohori.app-placement
-omarchy plugin validate ~/.config/omarchy/plugins/ioiohori.app-placement
+cd ~/.config/omarchy/plugins/ioiohori.app-placement
+omarchy plugin validate .
 node tests/placement.test.js     # pure logic: class guessing, geometry, generated Lua, state
 omarchy restart shell            # keepLoaded plugin: QML edits need a restart
 ```

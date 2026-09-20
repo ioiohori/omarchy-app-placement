@@ -11,7 +11,7 @@ var EMPTY_WORKSPACE = "emptym"
 // Exec names that say nothing about the window class.
 var GENERIC_EXECS = {
   "sh": true, "bash": true, "zsh": true, "env": true, "flatpak": true, "snap": true,
-  "systemd-run": true, "xdg-open": true, "gtk-launch": true, "uwsm-app": true, "uwsm": true,
+  "xdg-open": true, "gtk-launch": true, "uwsm-app": true, "uwsm": true,
   "python": true, "python3": true, "node": true, "electron": true, "java": true, "wine": true,
   "omarchy-launch-webapp": true, "omarchy-launch-or-focus-webapp": true,
   "omarchy-launch-or-focus": true, "omarchy-launch-tui": true, "omarchy-launch-or-focus-tui": true,
@@ -81,7 +81,9 @@ function execProgram(entry) {
     if (!token || token.indexOf("=") > 0 || token.charAt(0) === "-" || token.charAt(0) === "@") continue
     if (token.indexOf("://") >= 0) continue   // URL argument of a web-app launcher
     var name = basename(token)
-    if (GENERIC_EXECS[name.toLowerCase()]) continue
+    var lower = name.toLowerCase()
+    // systemd wrappers (scope/unit launchers) say nothing about the app either.
+    if (GENERIC_EXECS[lower] || lower.indexOf("systemd") === 0) continue
     return name
   }
   return ""
