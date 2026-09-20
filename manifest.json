@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "id": "ioiohori.quarter-launcher",
-  "name": "Quarter Launcher",
-  "version": "0.1.0",
+  "id": "ioiohori.app-placement",
+  "name": "App Placement",
+  "version": "0.2.0",
   "author": "Iori Horigome (ioiohori)",
   "license": "MIT",
-  "description": "Tick apps in a checklist and launch them floating on an empty workspace, docked to a quarter of the screen.",
+  "description": "Per-app window placement settings: tick Floating and 1/4 Right for any app and it opens that way from every launcher.",
   "kinds": [
     "overlay",
     "bar-widget"
   ],
   "keepLoaded": true,
   "entryPoints": {
-    "overlay": "QuarterLauncher.qml",
+    "overlay": "AppPlacement.qml",
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Quarter Launcher",
-    "description": "Opens the Quarter Launcher checklist",
-    "category": "Launchers",
+    "displayName": "App Placement",
+    "description": "Opens the App Placement settings",
+    "category": "Compositor",
     "allowMultiple": false,
     "defaultSection": "left"
   }

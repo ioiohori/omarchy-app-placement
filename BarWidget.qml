@@ -1,10 +1,10 @@
 import QtQuick
 import qs.Ui
 
-// Bar button that toggles the Quarter Launcher overlay.
+// Bar button that opens the App Placement settings overlay.
 BarWidget {
   id: root
-  moduleName: "ioiohori.quarter-launcher"
+  moduleName: "ioiohori.app-placement"
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
@@ -17,7 +17,7 @@ BarWidget {
     horizontalMargin: 7.5
     onPressed: function(mouseButton) {
       if (!root.bar) return
-      root.bar.run("omarchy-shell shell toggle ioiohori.quarter-launcher '{}'")
+      root.bar.run("omarchy-shell shell toggle ioiohori.app-placement '{}'")
     }
   }
 }
