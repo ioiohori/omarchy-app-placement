@@ -27,6 +27,24 @@ o.bind("SUPER + SHIFT + Q", "App placement settings", "omarchy-shell shell toggl
 `omarchy plugin enable` also puts a button on the bar (next to the Omarchy
 menu). Move or remove it with `omarchy bar move` / `omarchy bar` like any widget.
 
+Optional: let `SUPER + W` close the panel too. Omarchy binds it to "close
+window", so the plain bind would close the app behind the overlay. This
+version checks for the panel's layer surface first, inside Hyprland, so the
+normal case stays instant:
+
+```lua
+hl.unbind("SUPER + W")
+o.bind("SUPER + W", "Close window", function()
+  for _, layer in ipairs(hl.get_layers({ namespace = "omarchy-app-placement" }) or {}) do
+    if layer.mapped then
+      hl.exec_cmd("omarchy-shell shell hide ioiohori.app-placement")
+      return
+    end
+  end
+  hl.dispatch(hl.dsp.window.close())
+end)
+```
+
 ## Use
 
 | Key | Action |
@@ -37,6 +55,7 @@ menu). Move or remove it with `omarchy bar move` / `omarchy bar` like any widget
 | `Space` / `Enter` / click | toggle the highlighted checkbox |
 | `Ctrl+D` | clear every setting |
 | `Esc` | clear the filter, then close |
+| `SUPER + W` | close (with the optional bind above) |
 
 Rules:
 
@@ -118,6 +137,7 @@ Requires Omarchy 4.x (Hyprland with the Lua config, Quickshell 0.3).
 
 - インストール: `omarchy plugin add https://github.com/ioiohori/omarchy-app-placement.git --enable`
 - キー割り当て: `o.bind("SUPER + SHIFT + Q", "App placement settings", "omarchy-shell shell toggle ioiohori.app-placement")`
+- SUPER+W でも閉じたい場合は上記 Install 節の Lua スニペットを bindings.lua に追加(パネルが出ていなければ従来どおりウィンドウを閉じる)
 - 仕組み: チェック内容から `~/.local/state/omarchy/toggles/hypr/app-placement.lua` に Hyprland のウィンドウルールを生成し `hyprctl reload` します。Omarchy がこのディレクトリを reload のたびに読み直すので、hyprland.lua の編集は不要です。
 - 1/4 Right にチェックすると Floating も自動で入ります。ダイアログ等の子ウィンドウには適用されません。
 
