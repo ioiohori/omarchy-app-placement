@@ -66,7 +66,7 @@ function basename(path) {
 }
 
 // First real program in an Exec line: skip VAR=value prefixes and the
-// wrappers in GENERIC_EXECS (env, flatpak, systemd-run …).
+// wrappers in GENERIC_EXECS (env, flatpak, systemd scope launchers …).
 function execProgram(entry) {
   var argv = []
   try {
