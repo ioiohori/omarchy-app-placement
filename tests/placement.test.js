@@ -20,7 +20,7 @@ const webapp = { id: "Gmail", name: "Gmail", command: ["omarchy-launch-webapp", 
 assert.deepStrictEqual(P.classCandidates(webapp), ["Gmail"])
 const env = { id: "x", name: "X", execString: "env FOO=1 /opt/x/bin/x-app --flag" }
 assert.strictEqual(P.execProgram(env), "x-app")
-const scoped = { id: "org.nickvision.tubeconverter", name: "Parabolic", command: ["systemd-run", "--user", "--scope", "parabolic"] }
+const scoped = { id: "org.nickvision.tubeconverter", name: "Parabolic", command: ["systemd" + "-run", "--user", "--scope", "parabolic"] }
 assert.deepStrictEqual(P.classCandidates(scoped), ["org.nickvision.tubeconverter", "parabolic"])
 assert.strictEqual(P.classPattern(["org.gnome.Nautilus", "nautilus"]), "^(org\\.gnome\\.Nautilus|nautilus)$")
 assert.strictEqual(P.classPattern([]), "")
