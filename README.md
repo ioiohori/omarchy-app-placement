@@ -45,6 +45,24 @@ o.bind("SUPER + W", "Close window", function()
 end)
 ```
 
+## Remove
+
+```bash
+omarchy plugin remove ioiohori.app-placement
+rm -f ~/.local/state/omarchy/toggles/hypr/app-placement.lua ~/.local/state/omarchy/app-placement.json
+hyprctl reload
+```
+
+The first line removes the plugin checkout and disables it. The second deletes
+the generated rules and saved settings (the only files the plugin writes
+outside its own directory), and the reload drops the rules from Hyprland.
+
+## Dependencies
+
+Nothing beyond a stock Omarchy 4.x install: `omarchy-shell` (Quickshell 0.3),
+Hyprland with the Lua config, and `hyprctl` for reload / monitor queries.
+No sudo or pkexec is required. Node.js is only needed to run the tests.
+
 ## Use
 
 | Key | Action |
@@ -126,8 +144,6 @@ omarchy plugin validate ~/.config/omarchy/plugins/ioiohori.app-placement
 node tests/placement.test.js     # pure logic: class guessing, geometry, generated Lua, state
 omarchy restart shell            # keepLoaded plugin: QML edits need a restart
 ```
-
-Requires Omarchy 4.x (Hyprland with the Lua config, Quickshell 0.3).
 
 ## 日本語
 
