@@ -89,9 +89,51 @@ function execProgram(entry) {
   return ""
 }
 
+// Web-app launchers (Exec = omarchy-launch-webapp <url>) open the URL with
+// a Chromium-family browser in --app mode. Those windows carry a class the
+// browser derives from the URL rather than anything in the desktop entry:
+// <browser>-<host>__<path with "/" as "_">-<profile>, e.g.
+// chrome-calendar.google.com__-Default. Returns the first such URL or "".
+function webappUrl(entry) {
+  var argv = []
+  try {
+    if (entry && entry.command && typeof entry.command.length === "number") {
+      for (var i = 0; i < entry.command.length; i++) argv.push(String(entry.command[i]))
+    }
+  } catch (e) {
+  }
+  if (argv.length === 0 && entry && entry.execString) argv = String(entry.execString).split(/\s+/)
+  var launcher = false
+  for (var j = 0; j < argv.length; j++) {
+    var token = argv[j].replace(/^["']|["']$/g, "")
+    if (!launcher) {
+      launcher = basename(token).toLowerCase().indexOf("omarchy-launch") === 0 && basename(token).toLowerCase().indexOf("webapp") > 0
+      continue
+    }
+    if (/^https?:\/\//i.test(token)) return token
+  }
+  return ""
+}
+
+// Regex-fragment candidate for a web app: browser prefix and profile suffix
+// are left open since they depend on the default browser and Chrome profile.
+// The label shows the most common concrete form (Chrome, Default profile).
+function webappClass(url) {
+  var m = /^https?:\/\/([^\/?#]+)([^?#]*)/i.exec(String(url || ""))
+  if (!m) return null
+  var host = m[1].toLowerCase()
+  var port = ""
+  var colon = host.indexOf(":")
+  if (colon >= 0) { port = host.slice(colon + 1); host = host.slice(0, colon) }
+  var path = m[2].replace(/^\//, "").replace(/\//g, "_")
+  var pattern = "[A-Za-z0-9._-]+-" + escapeRegex(host) + (port ? "[^-]*" : "__" + escapeRegex(path)) + "-.+"
+  return { pattern: pattern, label: "chrome-" + host + (port ? "" : "__" + path) + "-Default" }
+}
+
 // Window-class guesses for an entry, most reliable first: StartupWMClass,
 // the desktop id (reverse-DNS ids are usually the Wayland app id) and the
-// executable name. Duplicates removed, order kept.
+// executable name. A web-app launcher contributes the browser's URL-derived
+// class as a pattern object ({ pattern, label }). Duplicates removed, order kept.
 function classCandidates(entry) {
   var out = []
   var seen = {}
@@ -102,8 +144,23 @@ function classCandidates(entry) {
     out.push(v)
   }
   add(entry && entry.startupClass)
+  var web = webappClass(webappUrl(entry))
+  if (web) {
+    out.push(web)
+    return out   // the desktop id ("Google Calendar") is never the window class
+  }
   add(entry && entry.id)
   add(execProgram(entry))
+  return out
+}
+
+function candidateLabel(candidate) {
+  return candidate && typeof candidate === "object" ? String(candidate.label || candidate.pattern || "") : String(candidate || "")
+}
+
+function classLabels(candidates) {
+  var out = []
+  for (var i = 0; i < (candidates || []).length; i++) out.push(candidateLabel(candidates[i]))
   return out
 }
 
@@ -111,10 +168,14 @@ function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\\/]/g, "\\$&")
 }
 
-// Anchored alternation, e.g. ^(org\.gnome\.Nautilus|nautilus)$
+// Anchored alternation, e.g. ^(org\.gnome\.Nautilus|nautilus)$. Plain
+// strings are matched literally; { pattern } candidates are used verbatim.
 function classPattern(candidates) {
   var parts = []
-  for (var i = 0; i < candidates.length; i++) parts.push(escapeRegex(candidates[i]))
+  for (var i = 0; i < candidates.length; i++) {
+    var c = candidates[i]
+    parts.push(c && typeof c === "object" ? String(c.pattern || "") : escapeRegex(c))
+  }
   return parts.length ? "^(" + parts.join("|") + ")$" : ""
 }
 
@@ -275,7 +336,8 @@ if (typeof module !== "undefined") {
   module.exports = {
     FRACTION: FRACTION, SIDE: SIDE, EMPTY_WORKSPACE: EMPTY_WORKSPACE,
     entryName: entryName, entrySubtext: entrySubtext, score: score,
-    execProgram: execProgram, classCandidates: classCandidates, classPattern: classPattern,
+    execProgram: execProgram, webappUrl: webappUrl, webappClass: webappClass,
+    classCandidates: classCandidates, classLabels: classLabels, classPattern: classPattern,
     sortedEntries: sortedEntries, usableArea: usableArea, geometry: geometry, pickMonitor: pickMonitor,
     luaString: luaString, luaRules: luaRules,
     normalizeState: normalizeState, normalizeApp: normalizeApp, isConfigured: isConfigured,

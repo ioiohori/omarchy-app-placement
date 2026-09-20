@@ -107,6 +107,12 @@ omarchy-shell shell call ioiohori.app-placement regenerate ''
 - The window class is guessed from `StartupWMClass`, the desktop id and the
   executable name; all candidates are matched (`^(org\.gnome\.Nautilus|nautilus)$`)
   and shown under the app name so you can see what will be matched.
+- Web apps made with `omarchy webapp install` open in a Chromium-family
+  browser's `--app` mode, whose window class comes from the URL rather than
+  the desktop entry (`chrome-calendar.google.com__-Default`). The plugin
+  derives that from the `omarchy-launch-webapp <url>` Exec line, leaving the
+  browser prefix and profile suffix open so Brave, Chromium or another
+  profile match too.
 - Settings live in `~/.local/state/omarchy/app-placement.json`. On every
   change the plugin writes `~/.local/state/omarchy/toggles/hypr/app-placement.lua`
   and runs `hyprctl reload`. Omarchy re-requires that directory on every
@@ -129,10 +135,10 @@ omarchy-shell shell call ioiohori.app-placement regenerate ''
 
 ### Known limits
 
-- Apps whose window class cannot be guessed from the desktop entry (some
-  Chrome web apps, wrappers) will not match. Check the grey class line under
-  the app name; add a `StartupWMClass=` to a local copy of the `.desktop`
-  file if needed.
+- Apps whose window class cannot be guessed from the desktop entry (custom
+  wrappers, web apps launched with a custom Exec) will not match. Check the
+  grey class line under the app name; add a `StartupWMClass=` to a local
+  copy of the `.desktop` file if needed.
 - With several monitors the column is sized for the focused monitor at save
   time. Call `regenerate` from a monitor hook if you switch often.
 

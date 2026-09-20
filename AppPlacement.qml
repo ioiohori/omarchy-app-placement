@@ -224,7 +224,7 @@ Item {
       displayModel.append({
         appId: rows[i].id,
         name: rows[i].name,
-        classText: rows[i].candidates.join(" | "),
+        classText: Placement.classLabels(rows[i].candidates).join(" | "),
         icon: String(entry.icon || ""),
         isFloat: rows[i].float,
         isQuarter: rows[i].quarter,

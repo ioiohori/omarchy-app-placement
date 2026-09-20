@@ -17,7 +17,19 @@ assert.deepStrictEqual(P.classCandidates(chromium), ["chromium"])
 const godot = { id: "org.godotengine.Godot", name: "Godot", startupClass: "Godot", command: ["/usr/bin/godot", "--editor"] }
 assert.deepStrictEqual(P.classCandidates(godot), ["Godot", "org.godotengine.Godot", "godot"])
 const webapp = { id: "Gmail", name: "Gmail", command: ["omarchy-launch-webapp", "https://mail.google.com"] }
-assert.deepStrictEqual(P.classCandidates(webapp), ["Gmail"])
+assert.deepStrictEqual(P.classCandidates(webapp), [{ pattern: "[A-Za-z0-9._-]+-mail\\.google\\.com__-.+", label: "chrome-mail.google.com__-Default" }])
+assert.strictEqual(P.classPattern(P.classCandidates(webapp)), "^([A-Za-z0-9._-]+-mail\\.google\\.com__-.+)$")
+assert.ok(new RegExp(P.classPattern(P.classCandidates(webapp))).test("chrome-mail.google.com__-Default"))
+assert.ok(new RegExp(P.classPattern(P.classCandidates(webapp))).test("brave-mail.google.com__-Profile 1"))
+assert.ok(!new RegExp(P.classPattern(P.classCandidates(webapp))).test("chrome-calendar.google.com__-Default"))
+assert.deepStrictEqual(P.classLabels(P.classCandidates(webapp)), ["chrome-mail.google.com__-Default"])
+const webappPath = { id: "Google Calendar", name: "Google Calendar", execString: 'omarchy-launch-webapp "https://mail.google.com/mail/u/0/"' }
+assert.deepStrictEqual(P.classLabels(P.classCandidates(webappPath)), ["chrome-mail.google.com__mail_u_0_-Default"])
+assert.ok(new RegExp(P.classPattern(P.classCandidates(webappPath))).test("chrome-mail.google.com__mail_u_0_-Default"))
+const webappFocus = { id: "Cal", name: "Cal", command: ["omarchy-launch-or-focus-webapp", "calendar", "https://calendar.google.com"] }
+assert.deepStrictEqual(P.classLabels(P.classCandidates(webappFocus)), ["chrome-calendar.google.com__-Default"])
+assert.strictEqual(P.webappUrl(nautilus), "")
+assert.deepStrictEqual(P.classLabels(["a", { pattern: "x", label: "y" }]), ["a", "y"])
 const env = { id: "x", name: "X", execString: "env FOO=1 /opt/x/bin/x-app --flag" }
 assert.strictEqual(P.execProgram(env), "x-app")
 const scoped = { id: "org.nickvision.tubeconverter", name: "Parabolic", command: ["systemd" + "-run", "--user", "--scope", "parabolic"] }
