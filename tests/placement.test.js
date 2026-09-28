@@ -56,6 +56,23 @@ has("-- All (all): empty workspace, floating, 1/4 right")
 assert.ok(lua.indexOf("skip") < 0)
 assert.ok(P.luaRules([], P.geometry(mon), "").indexOf("No apps configured") > 0)
 
+// Names, ids and the monitor name land in `--` comments: a line break in any
+// of them must not end the comment and leave the rest as Lua code.
+const evil = [{ id: "x\nos.execute('id')", name: "Evil\r\nos.exit()\u2028\u2029\u0085", candidates: ["evil"], float: true }]
+const evilLua = P.luaRules(evil, P.geometry(mon), "DP-1\nos.exit()")
+for (const line of evilLua.split("\n")) {
+  assert.ok(line === "" || line.startsWith("-- ") || line.startsWith("hl.window_rule("), "escaped comment: " + JSON.stringify(line))
+}
+assert.ok(!/[\r\u2028\u2029\u0085]/.test(evilLua))
+assert.strictEqual(P.luaComment("a\nb\tc"), "a b c")
+assert.strictEqual(P.luaComment("x".repeat(200)).length, 123)
+assert.strictEqual(P.luaString("a\r\"b"), '"a\\013\\"b"')
+
+// Process output is capped.
+assert.strictEqual(P.appendCapped("", "abcdef", 4), "abcd")
+assert.strictEqual(P.appendCapped("abcd", "ef", 4), "abcd")
+assert.strictEqual(P.appendCapped("ab", "c", 4), "abc")
+
 // State + toggles.
 let apps = P.normalizeState({ apps: { a: { float: true }, b: { quarter: true }, c: { float: false }, d: { emptyws: true } } }).apps
 assert.deepStrictEqual(apps, {

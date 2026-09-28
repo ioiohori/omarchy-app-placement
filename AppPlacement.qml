@@ -296,22 +296,50 @@ Item {
     onTriggered: if (!reloadProc.running) reloadProc.running = true
   }
 
+  // Absolute path so the automatic reload never resolves hyprctl through PATH,
+  // and capped output so a runaway process cannot grow the shell's memory.
+  readonly property string hyprctl: "/usr/bin/hyprctl"
+  readonly property int outputLimit: 256 * 1024
+  property string configErrors: ""
+  property string monitorsJson: ""
+
   Process {
     id: reloadProc
-    command: ["bash", "-c", "hyprctl reload >/dev/null && hyprctl configerrors"]
-    stdout: StdioCollector {
-      onStreamFinished: {
-        var errors = String(text || "").trim()
-        root.statusIsError = errors.length > 0
-        root.status = errors.length > 0 ? errors : ("Rules applied · " + root.configuredCount + " app" + (root.configuredCount === 1 ? "" : "s"))
+    command: [root.hyprctl, "reload"]
+    onExited: function(exitCode) {
+      if (exitCode !== 0) {
+        root.statusIsError = true
+        root.status = "hyprctl reload failed (exit " + exitCode + ")"
+      } else if (!configErrorsProc.running) {
+        configErrorsProc.running = true
       }
     }
   }
 
   Process {
+    id: configErrorsProc
+    command: [root.hyprctl, "configerrors"]
+    onStarted: root.configErrors = ""
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) { root.configErrors = Placement.appendCapped(root.configErrors, data, root.outputLimit) }
+    }
+    onExited: {
+      var errors = root.configErrors.trim()
+      root.statusIsError = errors.length > 0
+      root.status = errors.length > 0 ? errors : ("Rules applied · " + root.configuredCount + " app" + (root.configuredCount === 1 ? "" : "s"))
+    }
+  }
+
+  Process {
     id: monitorProbe
-    command: ["hyprctl", "monitors", "-j"]
-    stdout: StdioCollector { onStreamFinished: root.loadMonitors(text) }
+    command: [root.hyprctl, "monitors", "-j"]
+    onStarted: root.monitorsJson = ""
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) { root.monitorsJson = Placement.appendCapped(root.monitorsJson, data, root.outputLimit) }
+    }
+    onExited: function(exitCode) { if (exitCode === 0) root.loadMonitors(root.monitorsJson) }
   }
 
   FileView {
